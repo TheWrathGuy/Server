@@ -1206,6 +1206,11 @@ bool Mob::SpellEffect(Mob* caster, uint16 spell_id, float partial, int level_ove
 
 			case SE_SummonItem:
 			{
+				int item_id = spell.base_value[i];
+				if (RuleB(Custom, DoItemUpgrades)) {
+					item_id = GetMaxItemUpgrade(item_id);
+				}
+
 				const EQ::ItemData *item = database.GetItem(spell.base_value[i]);
 #ifdef SPELL_EFFECT_SPAM
 				const char *itemname = item ? item->Name : "*Unknown Item*";
@@ -1242,10 +1247,15 @@ bool Mob::SpellEffect(Mob* caster, uint16 spell_id, float partial, int level_ove
 			}
 			case SE_SummonItemIntoBag:
 			{
+				int item_id = spell.base_value[i];
+
 				const EQ::ItemData *item = database.GetItem(spell.base_value[i]);
 				if (!item) {
 					Message(Chat::Red, "Unable to summon item %d. Item not found.", spell.base_value[i]);
 					break;
+				}
+				if (RuleB(Custom, DoItemUpgrades)) {
+					item_id = GetMaxItemUpgrade(item_id);
 				}
 
 #ifdef SPELL_EFFECT_SPAM
@@ -1663,13 +1673,40 @@ bool Mob::SpellEffect(Mob* caster, uint16 spell_id, float partial, int level_ove
 					break;
 
 				if(IsClient()) {
-					CastToClient()->SetHorseId(0); // dismount if have horse
+					if (RuleB(Custom, AlternateMobFDBehavior) && caster->IsNPC()) {
+						std::vector<Mob*> valid_targets;
+						for (const auto hater : caster->GetHateList()) {
+							auto mob = hater->entity_on_hatelist;
+							if (mob == this) {
+								int hate = caster->GetHateAmount(this);
+								caster->SetHateAmountOnEnt(this, hate - 1000);
+								continue;
+							}
+							valid_targets.push_back(mob);
+						}
 
-					if (zone->random.Int(0, 99) > spells[spell_id].base_value[i]) {
-						SetFeigned(false);
-						entity_list.MessageCloseString(this, false, 200, 10, STRING_FEIGNFAILED, GetName());
-					} else {
-						SetFeigned(true);
+
+						if (!valid_targets.empty()) {
+							int random_index = zone->random.Int(0, valid_targets.size() - 1);
+							Mob* random_target = valid_targets[random_index];
+							if (!random_target) {
+								break;
+							}
+
+							random_target->Taunt(caster->CastToNPC(), true, 100, false, 1000);
+							HateSummon();
+						}
+					}
+					else {
+						CastToClient()->SetHorseId(0); // dismount if have horse
+
+						if (zone->random.Int(0, 99) > spells[spell_id].base_value[i]) {
+							SetFeigned(false);
+							entity_list.MessageCloseString(this, false, 200, 10, STRING_FEIGNFAILED, GetName());
+						}
+						else {
+							SetFeigned(true);
+						}
 					}
 				}
 				break;
@@ -2267,6 +2304,16 @@ bool Mob::SpellEffect(Mob* caster, uint16 spell_id, float partial, int level_ove
 #ifdef SPELL_EFFECT_SPAM
 				snprintf(effect_desc, _EDLEN, "Silence");
 #endif
+				if (IsClient() && RuleI(Custom, SilenceImmunityTimerMultiplier)) {
+					auto c_ref = CastToClient();
+					int  duration = CalcBuffDuration(caster, this, spell_id) * 6; // time in seconds
+					if (c_ref->m_silence_immune_timer.GetDuration() && !c_ref->m_silence_immune_timer.Check(false)) {
+						Message(Chat::Skills, fmt::format("You are temporarily immune to the silence effect. ({} seconds remaining)", static_cast<int>(c_ref->m_silence_immune_timer.GetRemainingTime() / 1000)).c_str());
+						break;
+					}
+					c_ref->m_silence_immune_timer.Start(duration * (RuleI(Custom, SilenceImmunityTimerMultiplier) + 1) * 1000);
+				}
+
 				Silence(true);
 				break;
 			}

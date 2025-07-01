@@ -517,6 +517,9 @@ public:
 	int GetBuffStatValueBySlot(uint8 slot, const char* stat_identifier);
 	virtual bool GetIllusionBlock() const { return false; }
 
+	uint32 GetItemUpgrade(uint32 item_id);
+	uint32 GetMaxItemUpgrade(uint32 item_id);
+
 	//Basic Stats/Inventory
 	virtual void SetLevel(uint8 in_level, bool command = false) { level = in_level; }
 	void TempName(const char *newname = nullptr);

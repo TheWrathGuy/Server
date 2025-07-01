@@ -1187,6 +1187,43 @@ RULE_INT(Custom, FarmingInstanceVersion, 254, "Instances with the version will l
 RULE_INT(Custom, FarmingInstanceTemplateVersion, 0, "Template version for non-respawning instances")
 RULE_CATEGORY_END()
 
+// Item Upgrades
+RULE_BOOL(Custom, DoItemUpgrades, true, "Item upgrades")
+RULE_REAL(Custom, Tier2ItemDropRate, 25, "Percentage chance that a drop will be upgraded to Tier 2. These percentages are independent of one another, but Tier2 is rolled first. Default value is twice as rare as Tier2.")
+RULE_REAL(Custom, Tier1ItemDropRate, 50, "Percentage chance that a drop will be upgraded to Tier 1. These percentages are independent of one another, but Tier2 is rolled first. Default value is twice as rare as Unmodified")
+
+// General QoL and Customizations
+RULE_BOOL(Custom, TauntTogglesPetTanking, true, "Enable to let pets hold aggro while taunt is on")
+RULE_BOOL(Custom, MultipleTwoHandedProcs, false, "Allow two-handed weapons to proc multiple procs (such as augments)")
+RULE_REAL(Custom, DevastatingFrenzyDamageMultiplier, 1.0, "Apply this multiplier for each 20% missing hp from target whenever Devastating Frenzy triggers")
+RULE_REAL(Custom, FrenzyScaleOnWeaponAmount, 3.0, "Add weapon damage multiplied by this value to frenzy")
+RULE_REAL(Custom, MonkScaleOnWeaponAmount, 0.0, "Add weapon damage multiplied by this value to strikes & kicks")
+RULE_REAL(Custom, MonkScaleOnHandFeetQuality, 0.0, "Add Damage to strikes and kicks based on hand and foot item quality")
+RULE_BOOL(Custom, DoubleAttackSkillRanged, false, "Use Double & Triple Attack skills for ranged attacks")
+RULE_REAL(Custom, CastedSpellCritBonusRatio, 1.0, "Multiply casted (Not procs) spells crit ratio by this value")
+RULE_REAL(Custom, ProcSpellCritBonusRatio, 1.0, "Multiply proc spells crit ratio by this value")
+RULE_BOOL(Custom, UseHasteForMeleeSkills, true, "Use Haste stat for activated melee skills")
+RULE_INT(Custom, PetProcRateCap, 100, "Maximum item (weapon & aug) proc rate bonus available to pets, 0 to disable.")
+RULE_INT(Custom, PetMaximumSpellCritRatio, 300, "Maximum spell critical ratio which can be applied to pets, 0 to disable. (300 is 3x damage)")
+RULE_INT(Custom, PetMaximumSpellCritChance, 75, "Maximum spell critical chance which can be applied to pets, 100 to disable.")
+RULE_BOOL(Custom, AdditiveBackstabDamage, true, "Backstab damage functions as extra damage rather than a replacement of normal damage.")
+RULE_INT(Custom, StunImmunityTimerMultiplier, 3, "Multiplier for the amount of time a player should be immune to stun after being stunned.")
+RULE_INT(Custom, SilenceImmunityTimerMultiplier, 3, "Multiplier for the amount of time a player should be immune to silence after being silenced.")
+RULE_BOOL(Custom, DontInterruptHealsByMelee, false, "Enable to prevent direct heal spells from being interrupted by melee attacks")
+RULE_BOOL(Custom, AlternateMobFDBehavior, true, "Enable to cause mob FD effects to randomly pick a new target")
+RULE_REAL(Custom, ScaleAutoAttackByHStr, 1.0f, "Scale auto attack damage by this value. 0.0 to disable.")
+RULE_INT(Custom, ScaleAutoAttackHStrSoftCap, 100, "Soft-cap: Lower bound of hStr linear decay soft scaling")
+RULE_REAL(Custom, ScaleAutoAttackHStrScaleFloor, 0.25, "Soft-cap: Scaling floor of hStr linear decay curve.")
+RULE_REAL(Custom, ScaleAutoAttackHStrScaleFactor, 0.0075, "Soft-cap: Scaling factor of hStr linear decay between upper and lower bound.")
+RULE_REAL(Custom, ScaleBowByHDex, 1.0f, "Scale bow damage damage by this value. 0.0 to disable.")
+RULE_REAL(Custom, ScaleBowByHDexDivide, 6.66f, "Divide final HDex scaling contribution to bow attacks by this amount.")
+RULE_INT(Custom, ScaleBowHDexSoftCap, 200, "Soft-cap: Lower bound of hDex linear decay soft scaling")
+RULE_REAL(Custom, ScaleBowHDexScaleFloor, 0.15, "Soft-cap: Scaling floor of hDex linear decay curve.")
+RULE_REAL(Custom, ScaleBowHDexScaleFactor, 0.0125, "Soft-cap: Scaling factor of hDex linear decay between upper and lower bound.")
+RULE_REAL(Custom, ScaleBowMinimumDamageMultiplier, 5.0, "Divide bow+arrow damage by this amount, multiply by divided hDex, for min bow damage.")
+RULE_REAL(Custom, ScaleBowMinimumDamageDivisor, 4.0, "Divide hDex by this amount before multiplying by bow multiplier.")
+RULE_CATEGORY_END()
+
 #undef RULE_CATEGORY
 #undef RULE_INT
 #undef RULE_REAL

@@ -195,7 +195,7 @@ void QuestManager::summonitem(uint32 itemid, int16 charges) {
 	QuestManagerCurrentQuestVars();
 	if(!initiator)
 		return;
-	initiator->SummonItem(itemid, charges);
+	initiator->SummonUpgradeItem(itemid, charges);
 }
 
 void QuestManager::write(const char *file, const char *str) {

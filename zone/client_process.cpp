@@ -369,8 +369,19 @@ bool Client::Process() {
 							if (GetTarget()->InFrontMob(this, GetTarget()->GetX(), GetTarget()->GetY())) {
 								if (CheckLosFN(GetTarget()) && CheckWaterAutoFireLoS(GetTarget())) {
 									//client has built in los check, but auto fire does not.. done last.
-									if (RangedAttack(GetTarget()) && CheckDoubleRangedAttack()) {
+									RangedAttack(GetTarget());
+
+									if (CheckDoubleRangedAttack() || (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack() && CheckDoubleAttack())) {
 										RangedAttack(GetTarget(), true);
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack() && CheckTripleAttack()) {
+										RangedAttack(GetTarget(), true);
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack()) {
+										CheckIncreaseSkill(EQ::skills::SkillDoubleAttack, GetTarget());
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack()) {
+										CheckIncreaseSkill(EQ::skills::SkillTripleAttack, GetTarget());
 									}
 								} else {
 									ranged_timer.Start();
@@ -389,6 +400,18 @@ bool Client::Process() {
 								if (CheckLosFN(GetTarget()) && CheckWaterAutoFireLoS(GetTarget())) {
 									//client has built in los check, but auto fire does not.. done last.
 									ThrowingAttack(GetTarget());
+									if (CheckDoubleRangedAttack() || (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack() && CheckDoubleAttack())) {
+										ThrowingAttack(GetTarget(), true);
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack() && CheckTripleAttack()) {
+										ThrowingAttack(GetTarget(), true);
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack()) {
+										CheckIncreaseSkill(EQ::skills::SkillDoubleAttack, GetTarget());
+									}
+									if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack()) {
+										CheckIncreaseSkill(EQ::skills::SkillTripleAttack, GetTarget());
+									}
 								} else {
 									ranged_timer.Start();
 								}

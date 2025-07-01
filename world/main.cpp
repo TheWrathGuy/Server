@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EQEmulator: Everquest Server Emulator
  * Copyright (C) 2001-2019 EQEmulator Development Team (https://github.com/EQEmu/Server)
  *
@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
-
+void RotateResourceHunterZones();
 #include "../common/global_define.h"
 
 #include <iostream>
@@ -76,6 +76,7 @@
 #include "web_interface.h"
 #include "console.h"
 #include "dynamic_zone_manager.h"
+#include "resource_hunter.h"
 
 #include "world_server_cli.h"
 #include "../common/content/world_content_service.h"
@@ -184,6 +185,8 @@ int main(int argc, char **argv)
 	parcel_prune_timer.Start(86400000);
 	Timer player_event_log_process(1000);
 	player_event_log_process.Start(1000);
+	Timer resource_hunter_timer(10000);
+	resource_hunter_timer.Start(10000);
 
 	// global loads
 	LogInfo("Loading launcher list");
@@ -453,6 +456,12 @@ int main(int argc, char **argv)
 			database.PurgeAllDeletedDataBuckets();
 			CharacterExpeditionLockoutsRepository::DeleteWhere(database, "expire_time <= NOW()");
 			CharacterTaskTimersRepository::DeleteWhere(database, "expire_time <= NOW()");
+		}
+
+		if (resource_hunter_timer.Check()) {
+			if (!HasRotatedToday()) {
+				RotateResourceHunterZones();
+			}
 		}
 
 		if (EQTimeTimer.Check()) {

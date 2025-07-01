@@ -191,6 +191,16 @@ void NPC::AddLootDropTable(uint32 lootdrop_id, uint8 drop_limit, uint8 min_drop)
 		return;
 	}
 
+	uint8 extra_rolls = 0;
+	if (zone && zone->HasBonusType("loot")) {
+		LogInfo("WERE HERE!?");
+		extra_rolls = zone->random.Int(1, 2);
+		LogInfo("Loot Bonus - [{}] - Performing {} bonus loot rolls for NPC [{}]",
+			zone->GetShortName(), extra_rolls, GetCleanName());
+	}
+
+	int total_rolls = drop_limit + extra_rolls;
+
 	// This will pick one item per iteration until mindrop.
 	// Don't let the compare against chance fool you.
 	// The roll isn't 0-100, its 0-total and it picks the item, we're just
@@ -199,7 +209,7 @@ void NPC::AddLootDropTable(uint32 lootdrop_id, uint8 drop_limit, uint8 min_drop)
 	int drops = 0;
 
 	// translate above for loop using l and le
-	for (int i = 0; i < drop_limit; ++i) {
+	for (int i = 0; i < total_rolls; ++i) {
 		if (drops < min_drop || roll_table_chance_bypass || (float) zone->random.Real(0.0, 1.0) >= no_loot_prob) {
 			float           roll = (float) zone->random.Real(0.0, roll_t);
 			for (const auto &e: le) {
@@ -268,6 +278,34 @@ bool NPC::MeetsLootDropLevelRequirements(LootdropEntriesRepository::LootdropEntr
 	return true;
 }
 
+
+uint32 NPC::DoUpgradeLoot(uint32 itemID) {
+	if (RuleB(Custom, DoItemUpgrades)) {
+		LogInfo("DoUpgradeLoot: Checking item [{}]", itemID);
+
+		zone->random.Reseed();
+		uint32 roll = zone->random.Real(0.0, 100.0);
+		uint32 baseID = itemID % 200000;
+		uint32 currentTier = itemID / 200000;
+		uint32 newID = baseID;
+
+		if (roll <= RuleR(Custom, Tier2ItemDropRate) && currentTier < 2) {
+			newID += 400000;
+		}
+		else if (roll <= RuleR(Custom, Tier1ItemDropRate) && currentTier < 1) {
+			newID += 200000;
+		}
+
+		if (database.GetItem(newID) && newID > itemID) {
+			LogInfo("DoUpgradeLoot: Upgraded [{}] -> [{}]", itemID, newID);
+			itemID = newID;
+		}
+	}
+
+	return itemID;
+}
+
+
 //if itemlist is null, just send wear changes
 void NPC::AddLootDrop(
 	const EQ::ItemData *item2,
@@ -284,6 +322,10 @@ void NPC::AddLootDrop(
 	if (m_resumed_from_zone_suspend) {
 		LogZoneState("NPC [{}] is resuming from zone suspend, skipping", GetCleanName());
 		return;
+	}
+
+	if (RuleB(Custom, DoItemUpgrades) && item2->ID < 200000 && !IsPet()) {
+		item2 = database.GetItem(DoUpgradeLoot(item2->ID));
 	}
 
 	if (!item2) {

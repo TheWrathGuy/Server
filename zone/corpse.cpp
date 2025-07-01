@@ -14,6 +14,7 @@
 #include "../common/rulesys.h"
 #include "../common/strings.h"
 #include "../common/say_link.h"
+#include "../common/loot.h"
 
 #include "corpse.h"
 #include "dynamic_zone.h"
@@ -139,7 +140,32 @@ Corpse::Corpse(
 		item_list->clear();
 	}
 
-	SetCash(npc->GetCopper(), npc->GetSilver(), npc->GetGold(), npc->GetPlatinum());
+	uint32 copper = npc->GetCopper();
+	uint32 silver = npc->GetSilver();
+	uint32 gold = npc->GetGold();
+	uint32 plat = npc->GetPlatinum();
+
+	// Only apply if this is not a player corpse and we're in a loot bonus zone
+	if (!npc->IsPet() && !npc->IsClient() && zone && zone->HasBonusType("coin")) {
+		uint32 original_copper = copper;
+		uint32 original_silver = silver;
+		uint32 original_gold = gold;
+		uint32 original_plat = plat;
+
+		copper *= 2;
+		silver *= 2;
+		gold *= 2;
+		plat *= 2;
+
+		LogInfo("Coin Bonus - [{}] - {}c, {}s, {}g, {}p",
+			zone->GetShortName(),
+			copper,
+			silver,
+			gold,
+			plat);
+	}
+
+	SetCash(copper, silver, gold, plat);
 
 	npctype_id = npc_type_id;
 	SetPlayerKillItemID(0);

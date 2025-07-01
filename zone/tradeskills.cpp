@@ -1148,6 +1148,8 @@ bool Client::TradeskillExecute(DBTradeskillRecipe_Struct *spec) {
 		itr = spec->onsuccess.begin();
 		while(itr != spec->onsuccess.end() && !spec->quest) {
 
+			auto item_id = GetMaxItemUpgrade(itr->first);
+
 			item = database.GetItem(itr->first);
 			if (item) {
 				CheckItemDiscoverability(itr->first);

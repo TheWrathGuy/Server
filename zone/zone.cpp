@@ -92,6 +92,7 @@ Mutex MZoneShutdown;
 
 volatile bool is_zone_loaded = false;
 Zone* zone = 0;
+std::unordered_set<std::string> zone_bonus_types;
 
 void UpdateWindowTitle(char* iNewTitle);
 
@@ -1106,6 +1107,9 @@ Zone::Zone(uint32 in_zoneid, uint32 in_instanceid, const char* in_short_name)
 
 	mMovementManager = &MobMovementManager::Get();
 
+	Bonus_Type_Timer = new Timer(60000);
+	Bonus_Type_Timer->Start();
+
 	SetQuestHotReloadQueued(false);
 }
 
@@ -1229,6 +1233,7 @@ bool Zone::Init(bool is_static) {
 	LoadBaseData();
 	LoadMerchants();
 	LoadTempMerchantData();
+	LoadBonusType();
 
 	// Merc data
 	if (RuleB(Mercs, AllowMercs)) {
@@ -1672,6 +1677,40 @@ bool Zone::Process() {
 	{
 		Weather_Timer->Disable();
 		ChangeWeather();
+	}
+
+	if (Bonus_Type_Timer->Check()) {
+		std::string prev = bonus_type;
+		LoadBonusType();
+
+		bool is_respawn = zone && zone->HasBonusType("respawn");
+		if (is_respawn != respawn_bonus_active) {
+			respawn_bonus_active = is_respawn;
+
+			LinkedListIterator<Spawn2*> it(spawn2_list);
+			for (it.Reset(); it.MoreElements(); it.Advance()) {
+				it.GetData()->ApplyRespawnBonus(is_respawn);
+			}
+
+			LogInfo("Respawn Bonus - [{}] - {}",
+				zone->GetShortName(),
+				is_respawn ? "ENABLED" : "DISABLED");
+			entity_list.Message(0, 15, "Respawn Bonus Activated! Enemies respawn more quickly here!");
+		}
+
+		bool was_loot = (prev == "loot");
+		bool is_loot = zone && zone->HasBonusType("loot");
+
+		if (!was_loot && is_loot && !loot_bonus_repop_done) {
+			loot_bonus_repop_done = true;
+			entity_list.ClearAreas();
+			zone->Repop(false);
+			LogInfo("Loot Bonus - [{}] - Loot bonus began, repopping zone", zone->GetShortName());
+			entity_list.Message(0, 15, "Loot Bonus Activated! Monsters may drop extra treasure!");
+		}
+		else if (!is_loot) {
+			loot_bonus_repop_done = false;
+		}
 	}
 
 	if(qGlobals)
@@ -3310,6 +3349,54 @@ void Zone::ReloadMaps()
 	zonemap  = Map::LoadMapFile(map_name);
 	watermap = WaterMap::LoadWaterMapfile(map_name);
 	pathing  = IPathfinder::Load(map_name);
+}
+
+void Zone::LoadBonusType()
+{
+	bonus_type.clear();
+
+	auto results = database.QueryDatabase(
+		fmt::format(
+			"SELECT bonus_type "
+			"FROM   resource_hunter_zones "
+			"WHERE  zone_short_name = '{}' "
+			"LIMIT  1",
+			GetShortName()
+		)
+	);
+
+	if (!results.Success()) {
+		LogError("Bonus-type query failed for zone [{}]: {}",
+			GetShortName(), results.ErrorMessage().c_str());
+		return;
+	}
+
+	if (results.RowCount() == 0) {
+		LogInfo("No bonus_type row found for zone [{}]", GetShortName());
+		return;
+	}
+
+	// one row, one column
+	bonus_type = Strings::ToLower(results.begin()[0]);
+
+	LogInfo("Bonus Loaded - [{}] - {}",
+		zone->GetShortName(),
+		bonus_type.c_str());
+}
+
+bool Zone::HasBonusType(const std::string& type) const {
+	// Don't apply bonuses in instanced zones
+	if (GetInstanceID() != 0) {
+		LogInfo("WERE IN AN INSTANCE!!!!!!!!");
+		return false;
+
+	}
+
+	return Strings::ToLower(bonus_type) == Strings::ToLower(type);
+}
+
+const std::string& Zone::GetBonusType() const {
+	return bonus_type;
 }
 
 #include "zone_loot.cpp"

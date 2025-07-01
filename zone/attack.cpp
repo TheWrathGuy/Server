@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #include "fastmath.h"
 #include "mob.h"
 #include "npc.h"
+#include "crit_string_ids.h"
 
 #include "bot.h"
 
@@ -1567,6 +1568,51 @@ void Mob::DoAttack(Mob *other, DamageHitInfo &hit, ExtraAttackOptions *opts, boo
 	}
 }
 
+inline float HeroicSTRScale(float str) {
+	int base_cap = RuleI(Custom, ScaleAutoAttackHStrSoftCap);
+	float scale_floor = RuleR(Custom, ScaleAutoAttackHStrScaleFloor); // 0.25
+	float scale_factor = RuleR(Custom, ScaleAutoAttackHStrScaleFactor); // 0.0075
+	int high_cap = static_cast<int>(base_cap + ((1.0f - scale_floor) / scale_factor));
+	if (str <= base_cap) {
+		return str / 100.0f;
+	}
+	else {
+		float scaler_start = 1.0f;
+		int capped_str = std::min(high_cap, static_cast<int>(str));
+		int count = capped_str - base_cap;
+		float sum_scaler = count * scaler_start - scale_factor * (count * (count + 1)) / 2.0f;
+		float scaled_str = static_cast<float>(base_cap) + std::max(sum_scaler, 0.0f);
+		if (str > high_cap) {
+			scaled_str += (str - high_cap) * std::max(scaler_start - scale_factor * count, 0.0f);
+		}
+
+		return scaled_str / 100.0f;
+	}
+}
+
+inline float HeroicDexScale(float dex) {
+	int base_cap = RuleI(Custom, ScaleBowHDexSoftCap);
+	float scale_floor = RuleR(Custom, ScaleBowHDexScaleFloor); // 0.15
+	float scale_factor = RuleR(Custom, ScaleBowHDexScaleFactor); // 0.0125
+	float scale_divide = RuleR(Custom, ScaleBowByHDexDivide); // 6.66
+	int high_cap = static_cast<int>(base_cap + ((1.0f - scale_floor) / scale_factor));
+	if (dex <= base_cap) {
+		return dex / 100.0f / scale_divide;
+	}
+	else {
+		float scaler_start = 1.0f;
+		int capped_dex = std::min(high_cap, static_cast<int>(dex));
+		int count = capped_dex - base_cap;
+		float sum_scaler = count * scaler_start - scale_factor * (count * (count + 1)) / 2.0f;
+		float scaled_dex = static_cast<float>(base_cap) + std::max(sum_scaler, 0.0f);
+		if (dex > high_cap) {
+			scaled_dex += (dex - high_cap) * std::max(scaler_start - scale_factor * count, 0.0f);
+		}
+
+		return scaled_dex / 100.0f / scale_divide;
+	}
+}
+
 //note: throughout this method, setting `damage` to a negative is a way to
 //stop the attack calculations
 // IsFromSpell added to allow spell effects to use Attack. (Mainly for the Rampage AA right now.)
@@ -1757,6 +1803,11 @@ bool Mob::Attack(Mob* other, int Hand, bool bRiposte, bool IsStrikethrough, bool
 				}
 			}
 		}
+	}
+
+	if (my_hit.damage_done > 0 && RuleR(Custom, ScaleAutoAttackByHStr)) {
+		float bonus = HeroicSTRScale(GetHeroicSTR());
+		my_hit.damage_done += my_hit.damage_done * (RuleR(Custom, ScaleAutoAttackByHStr) * bonus);
 	}
 
 	///////////////////////////////////////////////////////////
@@ -2675,6 +2726,14 @@ bool NPC::Death(Mob* killer_mob, int64 damage, uint16 spell, EQ::skills::SkillTy
 		Raid*  killer_raid  = entity_list.GetRaidByClient(give_exp_client);
 
 		int64 final_exp = give_exp_client->GetExperienceForKill(this);
+
+		if (zone && zone->HasBonusType("exp")) {
+			final_exp *= 2;
+			LogInfo("Exp Bonus - [{}] - [{}] exp for {}",
+				zone->GetShortName(),
+				final_exp,
+				give_exp_client->GetName());
+		}
 
 		// handle task credit on behalf of the killer
 		if (RuleB(TaskSystem, EnableTaskSystem)) {
@@ -5039,6 +5098,7 @@ void Mob::TryWeaponProc(const EQ::ItemInstance *inst, const EQ::ItemData *weapon
 	bool proced = false; // silly bool to prevent augs from going if weapon does
 
 	if (weapon->Proc.Type == EQ::item::ItemEffectCombatProc && IsValidSpell(weapon->Proc.Effect)) {
+		int item_proc_chance = RuleI(Custom, PetProcRateCap) && (IsPet() || (IsNPC() && CastToNPC()->GetSwarmInfo())) ? std::min(RuleI(Custom, PetProcRateCap), weapon->ProcRate) : weapon->ProcRate;
 		float WPC = ProcChance * (100.0f + // Proc chance for this weapon
 			static_cast<float>(weapon->ProcRate)) / 100.0f;
 		if (zone->random.Roll(WPC)) {	// 255 dex = 0.084 chance of proc. No idea what this number should be really.
@@ -5061,10 +5121,16 @@ void Mob::TryWeaponProc(const EQ::ItemInstance *inst, const EQ::ItemData *weapon
 			}
 		}
 	}
-	//If OneProcPerWeapon is not enabled, we reset the try for that weapon regardless of if we procced or not.
-	//This is for some servers that may want to have as many procs triggering from weapons as possible in a single round.
-	if (!RuleB(Combat, OneProcPerWeapon))
+
+	if (RuleB(Custom, MultipleTwoHandedProcs) && weapon && (weapon->IsType2HWeapon() || weapon->ItemType == EQ::item::ItemTypeBow)) {
+		// Override the OneProcPerWeapon rule for two-handed weapons
 		proced = false;
+	}
+	else if (!RuleB(Combat, OneProcPerWeapon)) {
+		// If OneProcPerWeapon is not enabled, reset the try for that weapon regardless of if we procced or not.
+		// This is for some servers that may want to have as many procs triggering from weapons as possible in a single round.
+		proced = false;
+	}
 
 	if (!proced && inst) {
 		for (int r = EQ::invaug::SOCKET_BEGIN; r <= EQ::invaug::SOCKET_END; r++) {
@@ -5474,6 +5540,23 @@ void Mob::TryCriticalHit(Mob *defender, DamageHitInfo &hit, ExtraAttackOptions *
 			}
 
 			hit.damage_done = hit.damage_done * crit_mod / 100;
+
+			if (RuleR(Custom, DevastatingFrenzyDamageMultiplier) > 0 &&
+				GetClass() == Class::Berserker &&
+				GetLevel() >= 50 && // Replace this for correct check for Decap AA
+				hit.skill == EQ::skills::SkillFrenzy) {
+
+				int target_hp_ratio = defender->GetHPRatio();
+
+				uint64 scale = RuleR(Custom, DevastatingFrenzyDamageMultiplier) * ((100 - target_hp_ratio) / 20);
+
+				hit.damage_done = hit.damage_done + (hit.damage_done * scale);
+				hit.min_damage = hit.min_damage + (hit.min_damage + scale);
+
+				hit.critical_type = CLEAVING_BLOW_MSG;
+				return;
+			}
+
 			LogCombatDetail("Crit success roll [{}] dex chance [{}] og dmg [{}] crit_mod [{}] new dmg [{}]", roll, dex_bonus, og_damage, crit_mod, hit.damage_done);
 
 			// step 3: check deadly strike
@@ -6369,6 +6452,23 @@ void Mob::CommonOutgoingHitSuccess(Mob* defender, DamageHitInfo &hit, ExtraAttac
 
 		//Scale Factor for Archery Damage Tuning
 		hit.damage_done *= RuleR(Combat, ArcheryBaseDamageBonus);
+
+		if (IsClient())
+		{
+			int min = (std::max(static_cast<int>(GetHeroicDEX() / RuleR(Custom, ScaleBowMinimumDamageDivisor)), 1) * (hit.base_damage / RuleR(Custom, ScaleBowMinimumDamageMultiplier)));
+			if (hit.damage_done < min)
+			{
+				LogDebug("hit clamped to [{}] from [{}]", min, hit.damage_done);
+				hit.damage_done = min;
+			}
+
+			if (hit.damage_done > 0 && RuleR(Custom, ScaleBowByHDex)) {
+				float bonus = HeroicDexScale(GetHeroicDEX());
+				hit.damage_done += hit.damage_done * (RuleR(Custom, ScaleBowByHDex) * bonus);
+			}
+			hit.damage_done = DoDamageCaps(hit.damage_done);
+		}
+		hit.damage_done += hit.damage_done * bonus / 100;
 	}
 
 	int extra_mincap = 0;

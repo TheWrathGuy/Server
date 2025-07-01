@@ -98,6 +98,8 @@ Spawn2::Spawn2(uint32 in_spawn2_id, uint32 spawngroup_id,
 	enabled = in_enabled;
 	this->anim = anim;
 	currentnpcid = 0;
+	orig_respawn_time = m_respawn_time;
+	orig_variance = variance_;
 
 	if(timeleft == 0xFFFFFFFF) {
 		//special disable timeleft
@@ -1392,5 +1394,29 @@ bool SpawnConditionManager::Check(uint16 condition, int16 min_value) {
 	SpawnCondition &cond = condi->second;
 
 	return(cond.value >= min_value);
+}
+
+void Spawn2::ApplyRespawnBonus(bool enable)
+{
+	static const uint32 kMinMs = 1000;
+
+	if (enable && !respawn_bonus_applied) {
+		m_respawn_time = std::max<uint32>(1, orig_respawn_time / 2);
+		variance_ = orig_variance / 2;
+		respawn_bonus_applied = true;
+
+		if (timer.Enabled()) {
+			timer.SetTimer(std::max(kMinMs, timer.GetRemainingTime() / 2));
+		}
+	}
+	else if (!enable && respawn_bonus_applied) {
+		m_respawn_time = orig_respawn_time;
+		variance_ = orig_variance;
+		respawn_bonus_applied = false;
+
+		if (timer.Enabled()) {
+			timer.SetTimer(std::max(kMinMs, m_respawn_time * 1000));
+		}
+	}
 }
 

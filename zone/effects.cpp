@@ -65,9 +65,12 @@ int64 Mob::GetActSpellDamage(uint16 spell_id, int64 value, Mob* target) {
 	chance += itembonuses.CriticalSpellChance + spellbonuses.CriticalSpellChance + aabonuses.CriticalSpellChance;
 	chance += itembonuses.FrenziedDevastation + spellbonuses.FrenziedDevastation + aabonuses.FrenziedDevastation;
 
+	if (IsPet()) {
+		chance = std::min(chance, RuleI(Custom, PetMaximumSpellCritChance));
+	}
+
 	//Crtical Hit Calculation pathway
 	if (chance > 0 || (IsOfClientBot() && GetClass() == Class::Wizard && GetLevel() >= RuleI(Spells, WizCritLevel))) {
-
 		 int32 ratio = RuleI(Spells, BaseCritRatio); //Critical modifier is applied from spell effects only. Keep at 100 for live like criticals.
 
 		//Improved Harm Touch is a guaranteed crit if you have at least one level of SCF.
@@ -91,12 +94,27 @@ int64 Mob::GetActSpellDamage(uint16 spell_id, int64 value, Mob* target) {
 			}
 		}
 
+		if (Critical) {
+			if ((IsClient() || (GetOwner() && GetOwner()->IsClient())) && GetEntityVariable("ProcHint") == "true") {
+				if (GetEntityVariable("ProcHint") != "true") {
+					ratio *= RuleR(Custom, CastedSpellCritBonusRatio);
+				}
+				else {
+					ratio *= RuleR(Custom, ProcSpellCritBonusRatio);
+				}
+			}
+		}
+
 		if (IsOfClientBot() && GetClass() == Class::Wizard) {
 			ratio += RuleI(Spells, WizCritRatio); //Default is zero
 		}
 
 		if (IsClient() && IsHarmTouchSpell(spell_id)) {
 			ratio += RuleI(Spells, HarmTouchCritRatio); //Default is zero
+		}
+
+		if (IsPet() && RuleI(Custom, PetMaximumSpellCritRatio)) {
+			ratio = std::min(ratio, RuleI(Custom, PetMaximumSpellCritRatio));
 		}
 
 		if (Critical) {

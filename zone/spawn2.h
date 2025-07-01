@@ -45,6 +45,7 @@ public:
 	void	Depop();
 	void	Repop(uint32 delay = 0);
 	void	ForceDespawn();
+	void	ApplyRespawnBonus(bool enable);
 
 	void	DeathReset(bool realdeath = 0); //resets the spawn in the case the npc dies, also updates db if needed
 
@@ -110,6 +111,9 @@ private:
 	uint32 m_resumed_npc_id = 0;
 	std::map<std::string, std::string> m_entity_variables = {};
 	glm::vec4 m_stored_location = {0, 0, -1000, 0}; // use -1000 to indicate unset/zero-state
+	uint32  orig_respawn_time { 0 };
+	uint32  orig_variance { 0 };
+	bool    respawn_bonus_applied { false };
 };
 
 class SpawnCondition {

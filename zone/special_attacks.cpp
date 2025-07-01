@@ -173,9 +173,14 @@ int Mob::GetBaseSkillDamage(EQ::skills::SkillType skill, Mob *target)
 			if (IsClient()) {
 				auto *inst = CastToClient()->GetInv().GetItem(EQ::invslot::slotPrimary);
 				if (inst && inst->GetItem() && inst->GetItem()->ItemType == EQ::item::ItemType1HPiercing) {
-					base = inst->GetItemBackstabDamage(true);
-					if (!inst->GetItemBackstabDamage()) {
-						base += inst->GetItemWeaponDamage(true);
+					if (RuleB(Custom, AdditiveBackstabDamage)) {
+						base = inst->GetItemWeaponDamage(true) + inst->GetItemBackstabDamage(true);
+					}
+					else {
+						base = inst->GetItemBackstabDamage(true);
+						if (!inst->GetItemBackstabDamage()) {
+							base += inst->GetItemWeaponDamage(true);
+						}
 					}
 
 					if (target) {
@@ -382,20 +387,29 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 			SetAttackTimer();
 			ThrowingAttack(GetTarget());
 
-			if (CheckDoubleRangedAttack()) {
+			if (CheckDoubleRangedAttack() || (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack() && CheckDoubleAttack())) {
 				ThrowingAttack(GetTarget(), true);
+				CheckIncreaseSkill(EQ::skills::SkillDoubleAttack, GetTarget());
 			}
-
+			if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack() && CheckTripleAttack()) {
+				ThrowingAttack(GetTarget(), true);
+				CheckIncreaseSkill(EQ::skills::SkillTripleAttack, GetTarget());
+			}
 			return;
 		}
 
 		// ranged attack (archery)
 		if (ca_atk->m_skill == EQ::skills::SkillArchery) {
 			SetAttackTimer();
-			if (RangedAttack(GetTarget()) && CheckDoubleRangedAttack()) {
+			RangedAttack(GetTarget());
+			if (CheckDoubleRangedAttack() || (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassDoubleAttack() && CheckDoubleAttack())) {
 				RangedAttack(GetTarget(), true);
+				CheckIncreaseSkill(EQ::skills::SkillDoubleAttack, GetTarget());
 			}
-
+			if (RuleB(Custom, DoubleAttackSkillRanged) && CanThisClassTripleAttack() && CheckTripleAttack()) {
+				RangedAttack(GetTarget(), true);
+				CheckIncreaseSkill(EQ::skills::SkillTripleAttack, GetTarget());
+			}
 			return;
 		}
 	}
@@ -444,7 +458,11 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 			}
 
 			reuse_time = BashReuseTime - 1 - skill_reduction;
-			reuse_time = (reuse_time * haste_modifier) / 100;
+
+			if (RuleB(Custom, UseHasteForMeleeSkills)) {
+				reuse_time = (reuse_time * haste_modifier) / 100;
+			}
+
 			DoSpecialAttackDamage(GetTarget(), EQ::skills::SkillBash, damage, 0, hate_override, reuse_time);
 
 			if (reuse_time) {
@@ -458,9 +476,9 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 	if (ca_atk->m_atk == 100 && ca_atk->m_skill == EQ::skills::SkillFrenzy) {
 		int attack_rounds = 1;
 		int max_dmg       = GetBaseSkillDamage(EQ::skills::SkillFrenzy, GetTarget());
+		int min_dmg = 0;
 
 		CheckIncreaseSkill(EQ::skills::SkillFrenzy, GetTarget(), 10);
-		DoAnim(anim1HWeapon, 0, false);
 
 		if (GetClass() == Class::Berserker) {
 			int chance = GetLevel() * 2 + GetSkill(EQ::skills::SkillFrenzy);
@@ -474,13 +492,41 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 			}
 		}
 
-		reuse_time = FrenzyReuseTime - 1 - skill_reduction;
-		reuse_time = (reuse_time * haste_modifier) / 100;
-
 		const EQ::ItemInstance* primary_in_use = GetInv().GetItem(EQ::invslot::slotPrimary);
 		if (primary_in_use && GetWeaponDamage(GetTarget(), primary_in_use) <= 0) {
 			max_dmg = DMG_INVULNERABLE;
 		}
+
+		reuse_time = FrenzyReuseTime - 1 - skill_reduction;
+
+		if (RuleB(Custom, UseHasteForMeleeSkills)) {
+			reuse_time = (reuse_time * haste_modifier) / 100;
+		}
+
+		if (RuleR(Custom, FrenzyScaleOnWeaponAmount) > 0) {
+			int weapon_damage = GetWeaponDamage(GetTarget(), GetInv().GetItem(EQ::invslot::slotPrimary)) + GetWeaponDamage(GetTarget(), GetInv().GetItem(EQ::invslot::slotSecondary));
+			max_dmg = max_dmg + static_cast<int>((RuleR(Custom, FrenzyScaleOnWeaponAmount) * weapon_damage) * (GetLevel() / 70.0f));
+			min_dmg = min_dmg + static_cast<int>((RuleR(Custom, FrenzyScaleOnWeaponAmount) * weapon_damage) * (GetLevel() / 70.0f));
+		}
+
+		int animType = (GetRace() == Race::Iksar || GetRace() == Race::Human) ? animRoundKick : animHand2Hand;
+		if (primary_in_use) {
+			switch (primary_in_use->GetItemType()) {
+			case EQ::item::ItemType2HSlash:
+			case EQ::item::ItemType2HBlunt:
+				animType = anim2HSlashing;
+				break;
+			case EQ::item::ItemType2HPiercing:
+				animType = anim2HWeapon;
+				break;
+			case EQ::item::ItemType1HPiercing:
+				animType = anim1HPiercing;
+				break;
+			case EQ::item::ItemType1HSlash:
+				animType = anim1HWeapon;
+			}
+		}
+		DoAnim(animType, 0, false);
 
 		while (attack_rounds > 0) {
 			if (GetTarget()) {
@@ -612,7 +658,9 @@ void Client::OPCombatAbility(const CombatAbility_Struct *ca_atk)
 		reuse_time = 9 - skill_reduction;
 	}
 
-	reuse_time = (reuse_time * haste_modifier) / 100;
+	if (RuleB(Custom, UseHasteForMeleeSkills)) {
+		reuse_time = (reuse_time * haste_modifier) / 100;
+	}
 
 	reuse_time = EQ::Clamp(reuse_time, 0, reuse_time);
 
@@ -636,6 +684,35 @@ int Mob::MonkSpecialAttack(Mob *other, uint8 unchecked_type)
 	if (IsNPC()) {
 		auto *npc = CastToNPC();
 		min_dmg = npc->GetMinDamage();
+	}
+
+	int extra_feet = 0;
+	int extra_hand = 0;
+
+	if (IsClient()) {
+		auto item_quality = [](const EQ::ItemInstance* item) -> int {
+			if (!item) {
+				return 0;
+			}
+			const auto item_data = item->GetItem();
+			int statSum = item_data->HeroicAgi +
+				item_data->HeroicDex +
+				item_data->HeroicStr +
+				item_data->HeroicSta +
+				item_data->AAgi +
+				item_data->ADex +
+				item_data->AStr +
+				item_data->ASta +
+				item_data->AC;
+
+			return statSum;
+			};
+
+		const auto feet = GetInv().GetItem(EQ::invslot::slotFeet);
+		const auto hand = GetInv().GetItem(EQ::invslot::slotHands);
+
+		extra_feet = item_quality(feet) * RuleR(Custom, MonkScaleOnHandFeetQuality);
+		extra_hand = item_quality(hand) * RuleR(Custom, MonkScaleOnHandFeetQuality);
 	}
 
 	switch (unchecked_type) {
@@ -702,6 +779,12 @@ int Mob::MonkSpecialAttack(Mob *other, uint8 unchecked_type)
 	// aggro should never be negative else it does massive aggro
 	if (ht < 0)	{
 		ht = 0;
+	}
+
+	if (RuleR(Custom, MonkScaleOnWeaponAmount) > 0) {
+		int weapon_damage = GetWeaponDamage(GetTarget(), GetInv().GetItem(EQ::invslot::slotPrimary)) + GetWeaponDamage(GetTarget(), GetInv().GetItem(EQ::invslot::slotSecondary));
+		max_dmg = max_dmg + static_cast<int>((RuleR(Custom, MonkScaleOnWeaponAmount) * weapon_damage) * (GetLevel() / 70.0f));
+		min_dmg = min_dmg + static_cast<int>((RuleR(Custom, MonkScaleOnWeaponAmount) * weapon_damage) * (GetLevel() / 70.0f));
 	}
 
 	DoSpecialAttackDamage(other, skill_type, max_dmg, min_dmg, ht, reuse);

@@ -340,6 +340,7 @@ public:
 	void UpdateQGlobal(uint32 qid, QGlobal newGlobal);
 	void weatherSend(Client *client = nullptr);
 	void ClearSpawnTimers();
+	void LoadOwnBonuses();
 
 	bool IsQuestHotReloadQueued() const;
 	void SetQuestHotReloadQueued(bool in_quest_hot_reload_queued);
@@ -486,6 +487,11 @@ public:
 	static void ClearZoneState(uint32 zone_id, uint32 instance_id);
 	void ReloadMaps();
 
+	// resource hunter
+	void LoadBonusType();
+	bool HasBonusType(const std::string& type) const;
+	const std::string& GetBonusType() const;
+
 private:
 	bool      allow_mercs;
 	bool      can_bind;
@@ -522,6 +528,9 @@ private:
 	bool      m_idle_when_empty;
 	uint32    m_seconds_before_idle;
 	bool      m_save_zone_state;
+	bool	  respawn_bonus_active = false;
+	bool	  loot_bonus_repop_done = false;
+
 
 	GlobalLootManager                   m_global_loot;
 	LinkedList<ZoneClientAuth_Struct *> client_auth_list;
@@ -535,6 +544,7 @@ private:
 	Timer                               clientauth_timer;
 	Timer                               initgrids_timer;
 	Timer                               qglobal_purge_timer;
+	Timer                               *Bonus_Type_Timer;
 	ZoneSpellsBlocked                   *blocked_spells;
 
 	// Factions
@@ -552,6 +562,8 @@ private:
 	std::vector<BaseDataRepository::BaseData> m_base_data = { };
 
 	uint32_t m_zone_server_id = 0;
+
+	std::string bonus_type;
 };
 
 #endif

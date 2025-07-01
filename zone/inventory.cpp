@@ -168,6 +168,81 @@ uint32 Client::NukeItem(uint32 itemnum, uint8 where_to_check) {
 	return x;
 }
 
+uint32 Mob::GetItemUpgrade(uint32 item_id) {
+	LogInfo("STARTING GetItemUpgrade()");
+	if (RuleB(Custom, DoItemUpgrades)) {
+		zone->random.Reseed();
+		uint32 roll = zone->random.Real(0.0, 100.0);
+		uint32 base_id = item_id % 200000;
+		uint32 currentTier = item_id / 200000;
+		uint32 newID = base_id;
+
+		if (roll <= RuleR(Custom, Tier2ItemDropRate) && currentTier < 2) {
+			newID += 400000;
+		}
+		else if (roll <= RuleR(Custom, Tier1ItemDropRate) && currentTier < 1) {
+			newID += 200000;
+		}
+
+		if (database.GetItem(newID) && newID > item_id) {
+			item_id = newID;
+		}
+	}
+
+	return item_id;
+}
+
+uint32 Mob::GetMaxItemUpgrade(uint32 item_id) {
+	if (RuleB(Custom, DoItemUpgrades)) {
+		uint32 new_item_id = item_id;
+		uint32 base_item_id = item_id % 200000;
+		uint32 tier_spacing = 200000;
+		int rank = item_id / tier_spacing + 1;
+
+		while (database.GetItem(base_item_id + (rank * tier_spacing)) != nullptr) {
+			new_item_id = base_item_id + (rank * tier_spacing);
+			rank++;
+		}
+
+		return new_item_id;
+	}
+
+	return item_id;
+}
+
+bool Client::SummonUpgradeItem(uint32 item_id, int16 charges, uint32 aug1, uint32 aug2, uint32 aug3, uint32 aug4, uint32 aug5, uint32 aug6, bool attuned, uint16 to_slot, uint32 ornament_icon, uint32 ornament_idfile, uint32 ornament_hero_model) {
+	if (RuleB(Custom, DoItemUpgrades)) {
+		int original_id = item_id;
+
+		if (GetMaxItemUpgrade(original_id) > original_id) {
+
+			item_id += 1000000;
+			item_id = GetItemUpgrade(item_id);
+
+			if (zone && zone->HasBonusType("empowered") && item_id < GetMaxItemUpgrade(original_id)) {
+				LogDebug("Trying Second-Round Upgrade");
+				auto old_id = item_id;
+				item_id = GetMaxItemUpgrade(item_id);
+
+				if (item_id > old_id) {
+					EQ::SayLinkEngine linker;
+					linker.SetLinkType(EQ::saylink::SayLinkItemData);
+
+					linker.SetItemData(database.GetItem(old_id));
+					auto old_item_lnk = linker.GenerateLink();
+
+					linker.SetItemData(database.GetItem(item_id));
+					auto new_item_lnk = linker.GenerateLink();
+
+					Message(Chat::Yellow, "Luck is with you! [%s] has become [%s].", old_item_lnk.c_str(), new_item_lnk.c_str());
+				}
+			}
+		}
+	}
+
+	return SummonItem(item_id, charges, aug1, aug2, aug3, aug4, aug5, aug6, attuned, to_slot, ornament_icon, ornament_idfile, ornament_hero_model);
+}
+
 
 bool Client::CheckLoreConflict(const EQ::ItemData* item)
 {
@@ -4615,7 +4690,7 @@ void Client::SummonItemIntoInventory(
 		is_arrow
 	);
 
-	SummonItem(
+	SummonUpgradeItem(
 		item_id,
 		charges,
 		aug1,

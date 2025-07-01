@@ -1155,6 +1155,7 @@ public:
 	void SwapItemResync(MoveItem_Struct* move_slots);
 	void PutLootInInventory(int16 slot_id, const EQ::ItemInstance &inst, LootItem** bag_item_data = 0);
 	bool AutoPutLootInInventory(EQ::ItemInstance& inst, bool try_worn = false, bool try_cursor = true, LootItem** bag_item_data = 0);
+	bool SummonUpgradeItem(uint32 item_id, int16 charges = -1, uint32 aug1 = 0, uint32 aug2 = 0, uint32 aug3 = 0, uint32 aug4 = 0, uint32 aug5 = 0, uint32 aug6 = 0, bool attuned = false, uint16 to_slot = EQ::invslot::slotCursor, uint32 ornament_icon = 0, uint32 ornament_idfile = 0, uint32 ornament_hero_model = 0);
 	bool SummonItem(uint32 item_id, int16 charges = -1, uint32 aug1 = 0, uint32 aug2 = 0, uint32 aug3 = 0, uint32 aug4 = 0, uint32 aug5 = 0, uint32 aug6 = 0, bool attuned = false, uint16 to_slot = EQ::invslot::slotCursor, uint32 ornament_icon = 0, uint32 ornament_idfile = 0, uint32 ornament_hero_model = 0);
 	void SummonItemIntoInventory(uint32 item_id, int16 charges = -1, uint32 aug1 = 0, uint32 aug2 = 0, uint32 aug3 = 0, uint32 aug4 = 0, uint32 aug5 = 0, uint32 aug6 = 0, bool is_attuned = false);
 	void SummonBaggedItems(uint32 bag_item_id, const std::vector<LootItem>& bag_items);
@@ -2138,6 +2139,9 @@ private:
 public:
 	bool IsLockSavePosition() const;
 	void SetLockSavePosition(bool lock_save_position);
+
+	Timer m_stun_immune_timer;
+	Timer m_silence_immune_timer;
 private:
 
 	PlayerProfile_Struct m_pp;
