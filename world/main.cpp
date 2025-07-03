@@ -76,7 +76,7 @@ void RotateResourceHunterZones();
 #include "web_interface.h"
 #include "console.h"
 #include "dynamic_zone_manager.h"
-#include "resource_hunter.h"
+#include "daily_juice.h"
 
 #include "world_server_cli.h"
 #include "../common/content/world_content_service.h"
@@ -185,8 +185,8 @@ int main(int argc, char **argv)
 	parcel_prune_timer.Start(86400000);
 	Timer player_event_log_process(1000);
 	player_event_log_process.Start(1000);
-	Timer resource_hunter_timer(10000);
-	resource_hunter_timer.Start(10000);
+	Timer daily_juice_timer(10000);
+	daily_juice_timer.Start(10000);
 
 	// global loads
 	LogInfo("Loading launcher list");
@@ -458,9 +458,9 @@ int main(int argc, char **argv)
 			CharacterTaskTimersRepository::DeleteWhere(database, "expire_time <= NOW()");
 		}
 
-		if (resource_hunter_timer.Check()) {
+		if (daily_juice_timer.Check()) {
 			if (!HasRotatedToday()) {
-				RotateResourceHunterZones();
+				RotateDailyJuiceZones();
 			}
 		}
 

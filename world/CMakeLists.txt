@@ -7,12 +7,13 @@ SET(world_sources
     cliententry.cpp
     clientlist.cpp
     console.cpp
+    daily_juice.cpp
     ../common/data_bucket.cpp
     dynamic_zone.cpp
     dynamic_zone_manager.cpp
     eql_config.cpp
-    eqemu_api_world_data_service.cpp
-    resource_hunter_zones.cpp
+    eqemu_api_world_data_service.cpp 
+    daily_juice_zones.cpp
     launcher_link.cpp
     launcher_list.cpp
     lfplist.cpp
@@ -20,7 +21,6 @@ SET(world_sources
     login_server_list.cpp
     main.cpp
     queryserv.cpp
-    resource_hunter.cpp
     shared_task_manager.cpp
     shared_task_world_messaging.cpp
     ucs.cpp
@@ -46,18 +46,18 @@ SET(world_headers
     clientlist.h
     console.h
     ../common/data_bucket.h
+    daily_juice.h
+    daily_juice_zones.h
     dynamic_zone.h
     dynamic_zone_manager.h
     eql_config.h
     eqemu_api_world_data_service.h
-    resource_hunter_zones.h
     launcher_link.h
     launcher_list.h
     lfplist.h
     login_server.h
     login_server_list.h
     queryserv.h
-    resource_hunter.h
     shared_task_manager.h
     shared_task_world_messaging.h
     sof_char_create_data.h

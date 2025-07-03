@@ -1,4 +1,4 @@
 #pragma once
 
 bool HasRotatedToday();
-void RotateResourceHunterZones();
+void RotateDailyJuiceZones();

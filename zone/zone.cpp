@@ -3358,7 +3358,7 @@ void Zone::LoadBonusType()
 	auto results = database.QueryDatabase(
 		fmt::format(
 			"SELECT bonus_type "
-			"FROM   resource_hunter_zones "
+			"FROM   daily_juice_zones "
 			"WHERE  zone_short_name = '{}' "
 			"LIMIT  1",
 			GetShortName()
@@ -3387,7 +3387,6 @@ void Zone::LoadBonusType()
 bool Zone::HasBonusType(const std::string& type) const {
 	// Don't apply bonuses in instanced zones
 	if (GetInstanceID() != 0) {
-		LogInfo("WERE IN AN INSTANCE!!!!!!!!");
 		return false;
 
 	}

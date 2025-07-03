@@ -1,5 +1,5 @@
-#ifndef RESOURCE_HUNTER_ZONES_H
-#define RESOURCE_HUNTER_ZONES_H
+#ifndef DAILY_JUICE_ZONES_H
+#define DAILY_JUICE_ZONES_H
 
 #include <map>
 #include <vector>
@@ -22,7 +22,7 @@ struct ZoneInfo {
 	LevelBracket bracket;
 };
 
-class ResourceHunterZones {
+class DailyJuiceZones {
 public:
 	bool Load();
 	const std::map<LevelBracket, std::vector<ZoneInfo>>& GetZonesByBracket() const;
@@ -31,4 +31,4 @@ private:
 	std::map<LevelBracket, std::vector<ZoneInfo>> zones_by_bracket_;
 };
 
-#endif // EXPANSION_ZONES_H
+#endif

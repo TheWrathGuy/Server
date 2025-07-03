@@ -5,8 +5,8 @@
 #include "zonelist.h"
 #include "zoneserver.h"
 #include "worlddb.h"
-#include "resource_hunter.h"
-#include "resource_hunter_zones.h"
+#include "daily_juice.h"
+#include "daily_juice_zones.h"
 
 #include <ctime>
 #include <vector>
@@ -19,11 +19,11 @@ extern WorldDatabase database;
 extern WorldDatabase content_db;
 extern ZSList zoneserver_list;
 
-ResourceHunterZones ez;
+DailyJuiceZones ez;
 
 bool HasRotatedToday() {
 	auto results = database.QueryDatabase(
-		"SELECT value FROM variables WHERE varname = 'rh_last_rotated';"
+		"SELECT value FROM variables WHERE varname = 'dj_last_rotated';"
 	);
 
 	if (!results.Success() || results.RowCount() == 0)
@@ -44,9 +44,9 @@ bool HasRotatedToday() {
 	return last_date_str == today;
 }
 
-void RotateResourceHunterZones() {
+void RotateDailyJuiceZones() {
 	if (!ez.Load()) {
-		LogError("Failed to load expansion zones for Resource Hunter rotation.");
+		LogError("Failed to load expansion zones for Daily Juice rotation.");
 		return;
 	}
 
@@ -83,10 +83,12 @@ void RotateResourceHunterZones() {
 		{ "loot", {1, 5} },
 		{ "respawn", {3, 5} },
 		{ "empowered", {2, 5} }
+		// { "rare", {2, 5} }
+		// { "goblin", {2, 5} }
 	};
 
 	// Clear previous day's bonuses
-	database.QueryDatabase("DELETE FROM resource_hunter_zones;");
+	database.QueryDatabase("DELETE FROM daily_juice_zones;");
 
 	LogInfo("Selected zones for bonuses:");
 	auto zone_iter = weighted_zone_pool.begin();
@@ -109,7 +111,7 @@ void RotateResourceHunterZones() {
 			// TODO: Report these to discord webhook
 			//LogInfo("  - Bonus: {} | Zone: {}", bonus, z);
 			auto query = StringFormat(
-				"INSERT INTO resource_hunter_zones (zone_short_name, bonus_type) VALUES ('%s', '%s');",
+				"INSERT INTO daily_juice_zones (zone_short_name, bonus_type) VALUES ('%s', '%s');",
 				z.c_str(), bonus.c_str()
 			);
 			database.QueryDatabase(query);
@@ -123,7 +125,7 @@ void RotateResourceHunterZones() {
 	strftime(today, sizeof(today), "%Y-%m-%d", localtime(&now));
 
 	auto update_query = StringFormat(
-		"REPLACE INTO variables (varname, value, information, ts) VALUES ('rh_last_rotated', '%s', 'Last date Resource Hunter zones rotated', NOW());",
+		"REPLACE INTO variables (varname, value, information, ts) VALUES ('dj_last_rotated', '%s', 'Last date Daily Juice zones rotated', NOW());",
 		today
 	);
 	database.QueryDatabase(update_query);
@@ -133,8 +135,8 @@ void RotateResourceHunterZones() {
 		0,
 		0,
 		Chat::Yellow,
-		"Resource Hunter zones have rotated!"
+		"JUICE! Bonus zones have rotated—go find today’s flavor!"
 	);
 
-	LogInfo("Resource Hunter zones rotated.");
+	LogInfo("Daily Juice zones rotated.");
 }

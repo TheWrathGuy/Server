@@ -1,4 +1,4 @@
-#include "resource_hunter_zones.h"
+#include "daily_juice_zones.h"
 #include "../common/eqemu_logsys.h"
 #include "worlddb.h" // for content_db
 
@@ -9,7 +9,6 @@ extern WorldDatabase content_db;
 namespace {
 	std::unordered_map<std::string, LevelBracket> zone_to_bracket = {
 		// 1-10
-		{ "akanon", LevelBracket::Bracket_1_10 },
 		{ "butcher", LevelBracket::Bracket_1_10 },
 		{ "commons", LevelBracket::Bracket_1_10 },
 		{ "ecommons", LevelBracket::Bracket_1_10 },
@@ -18,49 +17,31 @@ namespace {
 		{ "erudsxing", LevelBracket::Bracket_1_10 },
 		{ "everfrost", LevelBracket::Bracket_1_10 },
 		{ "feerrott", LevelBracket::Bracket_1_10 },
-		{ "felwithea", LevelBracket::Bracket_1_10 },
-		{ "felwitheb", LevelBracket::Bracket_1_10 },
 		{ "fieldofbone", LevelBracket::Bracket_1_10 },
 		{ "gfaydark", LevelBracket::Bracket_1_10 },
-		{ "grobb", LevelBracket::Bracket_1_10 },
-		{ "halas", LevelBracket::Bracket_1_10 },
 		{ "innothule", LevelBracket::Bracket_1_10 },
-		{ "kaladima", LevelBracket::Bracket_1_10 },
-		{ "kaladimb", LevelBracket::Bracket_1_10 },
 		{ "kerraridge", LevelBracket::Bracket_1_10 },
 		{ "misty", LevelBracket::Bracket_1_10 },
 		{ "nektulos", LevelBracket::Bracket_1_10 },
-		{ "neriaka", LevelBracket::Bracket_1_10 },
-		{ "neriakb", LevelBracket::Bracket_1_10 },
-		{ "neriakc", LevelBracket::Bracket_1_10 },
 		{ "nro", LevelBracket::Bracket_1_10 },
-		{ "oggok", LevelBracket::Bracket_1_10 },
 		{ "paineel", LevelBracket::Bracket_1_10 },
 		{ "qcat", LevelBracket::Bracket_1_10 },
 		{ "qey2hh1", LevelBracket::Bracket_1_10 },
-		{ "qeynos", LevelBracket::Bracket_1_10 },
-		{ "qeynos2", LevelBracket::Bracket_1_10 },
 		{ "qeytoqrg", LevelBracket::Bracket_1_10 },
 		{ "qrg", LevelBracket::Bracket_1_10 },
-		{ "rivervale", LevelBracket::Bracket_1_10 },
 		{ "shadeweaver", LevelBracket::Bracket_1_10 },
-		{ "sharvahl", LevelBracket::Bracket_1_10 },
 		{ "sro", LevelBracket::Bracket_1_10 },
 		{ "steamfont", LevelBracket::Bracket_1_10 },
 		{ "tox", LevelBracket::Bracket_1_10 },
 		{ "warslikswood", LevelBracket::Bracket_1_10 },
 
 		// 11-20
-		{ "arena", LevelBracket::Bracket_11_20 },
 		{ "befallen", LevelBracket::Bracket_11_20 },
 		{ "beholder", LevelBracket::Bracket_11_20 },
 		{ "blackburrow", LevelBracket::Bracket_11_20 },
 		{ "cauldron", LevelBracket::Bracket_11_20 },
 		{ "cazicthule", LevelBracket::Bracket_11_20 },
 		{ "crushbone", LevelBracket::Bracket_11_20 },
-		{ "freporte", LevelBracket::Bracket_11_20 },
-		{ "freportn", LevelBracket::Bracket_11_20 },
-		{ "freportw", LevelBracket::Bracket_11_20 },
 		{ "highkeep", LevelBracket::Bracket_11_20 },
 		{ "highpass", LevelBracket::Bracket_11_20 },
 		{ "jaggedpine", LevelBracket::Bracket_11_20 },
@@ -74,7 +55,6 @@ namespace {
 		{ "oot", LevelBracket::Bracket_11_20 },
 		{ "runnyeye", LevelBracket::Bracket_11_20 },
 		{ "soldunga", LevelBracket::Bracket_11_20 },
-		{ "soldungb", LevelBracket::Bracket_11_20 },
 		{ "swampofnohope", LevelBracket::Bracket_11_20 },
 
 		// 21-30
@@ -88,7 +68,6 @@ namespace {
 		{ "permafrost", LevelBracket::Bracket_21_30 },
 		{ "rathemtn", LevelBracket::Bracket_21_30 },
 		{ "scarlet", LevelBracket::Bracket_21_30 },
-		{ "shadowhaven", LevelBracket::Bracket_21_30 },
 		{ "southkarana", LevelBracket::Bracket_21_30 },
 		{ "stonebrunt", LevelBracket::Bracket_21_30 },
 		{ "thedeep", LevelBracket::Bracket_21_30 },
@@ -109,16 +88,15 @@ namespace {
 		{ "grimling", LevelBracket::Bracket_31_40 },
 		{ "iceclad", LevelBracket::Bracket_31_40 },
 		{ "mseru", LevelBracket::Bracket_31_40 },
-		{ "nexus", LevelBracket::Bracket_31_40 },
 		{ "overthere", LevelBracket::Bracket_31_40 },
 		{ "paw", LevelBracket::Bracket_31_40 },
 		{ "sseru", LevelBracket::Bracket_31_40 },
 		{ "tenebrous", LevelBracket::Bracket_31_40 },
 		{ "timorous", LevelBracket::Bracket_31_40 },
+		{ "soldungb", LevelBracket::Bracket_31_40 },
 
 		// 41-50
 		{ "acrylia", LevelBracket::Bracket_41_50 },
-		{ "bazaar", LevelBracket::Bracket_41_50 },
 		{ "charasis", LevelBracket::Bracket_41_50 },
 		{ "chardok", LevelBracket::Bracket_41_50 },
 		{ "cobaltscar", LevelBracket::Bracket_41_50 },
@@ -130,7 +108,6 @@ namespace {
 		{ "fungusgrove", LevelBracket::Bracket_41_50 },
 		{ "karnor", LevelBracket::Bracket_41_50 },
 		{ "katta", LevelBracket::Bracket_41_50 },
-		{ "maiden", LevelBracket::Bracket_41_50 },
 		{ "mischiefplane", LevelBracket::Bracket_41_50 },
 		{ "nurga", LevelBracket::Bracket_41_50 },
 		{ "poair", LevelBracket::Bracket_41_50 },
@@ -190,7 +167,7 @@ namespace {
 	};
 }
 
-bool ResourceHunterZones::Load() {
+bool DailyJuiceZones::Load() {
 	zones_by_bracket_.clear();
 
 	for (const auto& [short_name, bracket] : zone_to_bracket) {
@@ -210,6 +187,6 @@ bool ResourceHunterZones::Load() {
 }
 
 
-const std::map<LevelBracket, std::vector<ZoneInfo>>& ResourceHunterZones::GetZonesByBracket() const {
+const std::map<LevelBracket, std::vector<ZoneInfo>>& DailyJuiceZones::GetZonesByBracket() const {
 	return zones_by_bracket_;
 }

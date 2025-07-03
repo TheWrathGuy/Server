@@ -281,8 +281,6 @@ bool NPC::MeetsLootDropLevelRequirements(LootdropEntriesRepository::LootdropEntr
 
 uint32 NPC::DoUpgradeLoot(uint32 itemID) {
 	if (RuleB(Custom, DoItemUpgrades)) {
-		LogInfo("DoUpgradeLoot: Checking item [{}]", itemID);
-
 		zone->random.Reseed();
 		uint32 roll = zone->random.Real(0.0, 100.0);
 		uint32 baseID = itemID % 200000;
@@ -297,7 +295,6 @@ uint32 NPC::DoUpgradeLoot(uint32 itemID) {
 		}
 
 		if (database.GetItem(newID) && newID > itemID) {
-			LogInfo("DoUpgradeLoot: Upgraded [{}] -> [{}]", itemID, newID);
 			itemID = newID;
 		}
 	}
